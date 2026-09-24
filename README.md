@@ -1,5 +1,3 @@
-Here is the polished, ready-to-publish `README.md` based on your exact structure and technical specifications. You can copy this directly into your GitHub repository.
-
 # 🚀 AI Visibility Audit
 
 **AI Visibility Audit** is an AI-powered auditing system that analyzes how a brand appears in AI-generated answers.
