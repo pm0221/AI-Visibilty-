@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Visibility Audit</title>
+<style>
+*{box-sizing:border-box}
+:root{
+ --bg:#070b16;--panel:#10172a;--panel2:#151e34;--line:#263452;
+ --text:#f4f7ff;--muted:#9ba8c1;--blue:#6ea8fe;--purple:#8b6cff;
+ --green:#35d07f;--red:#ff667d;--shadow:0 18px 55px rgba(0,0,0,.28);
+}
+body{margin:0;background:radial-gradient(circle at 20% 0%,#17264b 0,#0b1020 38%,#070b16 100%);
+font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--text);min-height:100vh}
+.app{max-width:1450px;margin:auto;padding:24px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+.brand{display:flex;gap:13px;align-items:center}.logo{width:44px;height:44px;border-radius:13px;background:linear-gradient(135deg,var(--blue),var(--purple));display:grid;place-items:center;font-weight:900}
+h1{font-size:21px;margin:0}.sub{font-size:12px;color:var(--muted);margin-top:3px}
+.status{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}.dot{width:9px;height:9px;border-radius:50%;background:#6b7280}.dot.on{background:var(--green);box-shadow:0 0 14px var(--green)}
+.grid{display:grid;grid-template-columns:380px 1fr;gap:18px}
+.card{background:rgba(16,23,42,.9);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+.card h2{font-size:14px;margin:0;padding:18px 20px;border-bottom:1px solid var(--line)}
+.body{padding:20px}
+label{display:block;color:var(--muted);font-size:12px;margin:0 0 7px}
+input,select{width:100%;background:#0b1222;border:1px solid var(--line);color:var(--text);padding:12px 13px;border-radius:10px;outline:none;margin-bottom:15px}
+input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(110,168,254,.12)}
+button{border:0;border-radius:10px;padding:11px 14px;font-weight:700;color:white;background:#253452;cursor:pointer}
+button:hover{filter:brightness(1.12);transform:translateY(-1px)}button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.primary{width:100%;background:linear-gradient(135deg,#477ff0,#7958df)}
+.secondary{background:#18243b}.danger{background:#5c2632}
+.row{display:flex;gap:9px}.row>*{flex:1}
+#competitors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.comp{background:#0d1527;border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;gap:10px;align-items:flex-start}
+.comp input{width:auto;margin:2px 0 0}.comp strong{font-size:13px}.comp small{display:block;color:var(--muted);font-size:11px;margin-top:3px;word-break:break-all}
+.empty{color:var(--muted);font-size:13px;padding:15px;border:1px dashed var(--line);border-radius:12px}
+.phases{display:grid;gap:8px}.phase{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;background:#0c1324;border:1px solid transparent}.phase.active{border-color:#365ca4;background:#111d37}.phase.done{opacity:.75}.phase .ico{width:22px;text-align:center}.phase small{color:var(--muted)}
+.progress{height:8px;background:#0a1020;border-radius:20px;overflow:hidden;margin:12px 0}.bar{height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--purple));transition:width .3s}
+.console{height:170px;overflow:auto;background:#080d18;border:1px solid var(--line);border-radius:12px;padding:12px;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;color:#b9c8e6}
+.report-wrap{margin-top:18px}.report-tools{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-bottom:1px solid var(--line)}
+#reportFrame{display:block;width:100%;height:900px;border:0;background:#fff}
+.notice{padding:10px 12px;border-radius:10px;font-size:12px;background:#111d35;color:var(--muted);margin-bottom:13px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}#competitors{grid-template-columns:1fr}.app{padding:13px}header{align-items:flex-start;gap:10px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+ <div class="brand"><div class="logo">AI</div><div><h1>AI Visibility Audit</h1><div class="sub">Consumer search visibility &amp; brand presence analytics</div></div></div>
+ <div class="status"><span id="dot" class="dot"></span><span id="statusText">Checking backend…</span></div>
+</header>
+
+<div class="grid">
+<section>
+ <div class="card">
+  <h2>Audit Setup</h2><div class="body">
+   <label>Brand Name</label><input id="brand" placeholder="e.g. HDFC Life">
+   <label>Brand Website</label><input id="url" placeholder="https://example.com">
+   <label>Category</label><input id="category" placeholder="e.g. Life Insurance">
+   <div class="row"><button id="discoverBtn" class="secondary">✨ Discover Automatically</button><button id="resetBtn" class="danger">Reset</button></div>
+  </div>
+ </div>
+
+ <div class="card" style="margin-top:18px">
+  <h2>Competitors</h2><div class="body">
+   <div id="notice" class="notice">Enter your brand details, then use <b>Discover Automatically</b>. Competitor names are found by Google + Groq; URLs are optional for tracking.</div>
+   <div id="competitors"><div class="empty">No competitors loaded yet.</div></div>
+   <div class="row" style="margin-top:12px"><button id="addBtn" class="secondary">+ Add Manual</button><button id="startBtn" class="primary">Start Audit</button></div>
+  </div>
+ </div>
+</section>
+
+<section>
+ <div class="card">
+  <h2>Audit Progress</h2><div class="body">
+   <div class="phases" id="phases"></div>
+   <div class="progress"><div id="bar" class="bar"></div></div>
+   <div id="progressText" class="sub">Ready</div>
+   <div style="margin-top:14px" class="console" id="console">Waiting for audit…</div>
+  </div>
+ </div>
+
+ <div class="card report-wrap">
+  <h2>Audit Report</h2>
+  <div class="report-tools">
+   <button id="refreshReport" class="secondary">Refresh Report</button>
+   <button id="downloadReport" class="secondary">Download Report</button>
+  </div>
+  <iframe id="reportFrame" title="Audit Report"></iframe>
+ </div>
+</section>
+</div>
+</div>
+
+<script>
+const BACKEND=window.location.origin;
+const phases=["Competitor Discovery","Website Scraping","Keyword Extraction","Keyword Ranking (Gemini)","Context Mining","Category Analysis","Query Generation","Gemini Audit","Scoring & Analytics","Dashboard Generation"];
+let running=false, timer=null;
+
+function $(id){return document.getElementById(id)}
+function log(x){$("console").textContent += "\\n"+x; $("console").scrollTop=$("console").scrollHeight}
+function renderPhases(current=-1,done=-1){
+ $("phases").innerHTML=phases.map((p,i)=>{
+   let cls=i<done?"done":i===current?"active":"";
+   let ico=i<done?"✓":i===current?"●":"○";
+   return `<div class="phase ${cls}"><span class="ico">${ico}</span><div><b>${p}</b></div></div>`;
+ }).join("");
+}
+renderPhases();
+
+async function checkBackend(){
+ try{
+  let r=await fetch(BACKEND+"/",{cache:"no-store"});
+  if(!r.ok)throw Error();
+  $("dot").className="dot on"; $("statusText").textContent="Backend connected";
+  $("notice").textContent="Backend connected. Automatic discovery and real audits are available.";
+  return true;
+ }catch(e){
+  $("dot").className="dot"; $("statusText").textContent="Backend offline";
+  $("notice").textContent="Backend is offline. Run: python app.py — you can still add competitors manually.";
+  return false;
+ }
+}
+checkBackend();
+
+function addCompetitor(name="",url=""){
+ const box=$("competitors");
+ if(box.querySelector(".empty"))box.innerHTML="";
+ const div=document.createElement("div");div.className="comp";
+ div.innerHTML=`<input type="checkbox" checked><div style="flex:1"><input class="cname" placeholder="Competitor name" value="${escapeHtml(name)}"><input class="curl" placeholder="Optional website URL"><small style="display:block;color:var(--muted);font-size:10px;margin:-8px 0 8px">URL optional — name is enough for Gemini tracking</small><button type="button" class="secondary remove">Remove</button></div>`;
+ div.querySelector(".curl").value=url;
+ div.querySelector(".remove").onclick=()=>div.remove();
+ box.appendChild(div);
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+
+$("addBtn").onclick=()=>addCompetitor();
+
+$("discoverBtn").onclick=async()=>{
+ const brand=$("brand").value.trim(), category=$("category").value.trim();
+ if(!brand||!category){alert("Enter Brand Name and Category first.");return}
+ $("discoverBtn").disabled=true; log("Starting competitor discovery…");
+ try{
+  const r=await fetch(BACKEND+"/discover",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({brand_name:brand,brand_url:$("url").value.trim(),category})});
+  const d=await r.json(); if(!r.ok)throw Error(d.detail||"Discovery failed");
+  const found=d.competitors||[];
+  $("competitors").innerHTML="";
+  found.forEach(c=>{
+    if(typeof c === "string") addCompetitor(c,"");
+    else addCompetitor(c.name||"",c.url||"");
+  });
+  $("notice").textContent=found.length
+    ? `Automatically discovered ${found.length} competitor(s). Review/select them before starting.`
+    : "No competitors were discovered. Use + Add Manual.";
+  log(`Competitor discovery completed: ${found.length} competitor(s).`);
+ }catch(e){log("Discovery error: "+e.message);alert(e.message)}
+ $("discoverBtn").disabled=false;
+};
+
+function selectedCompetitors(){
+ return [...document.querySelectorAll(".comp")]
+   .filter(x=>x.querySelector('input[type=checkbox]').checked)
+   .map(x=>({name:x.querySelector(".cname").value.trim(),url:x.querySelector(".curl").value.trim()}))
+   .filter(x=>x.name);
+}
+
+function startProgress(){
+ if(window.auditEventSource) window.auditEventSource.close();
+ window.auditEventSource=new EventSource(BACKEND+"/progress");
+ window.auditEventSource.onmessage=e=>{
+  try{
+   const d=JSON.parse(e.data);
+   const idx=Math.max(0,Math.min(phases.length-1,(Number(d.current_phase)||1)-1));
+   const done=d.status==="done"?phases.length:idx;
+   renderPhases(idx,done);
+   $("bar").style.width=(d.status==="done"?100:Math.round((idx/phases.length)*100))+"%";
+   $("progressText").textContent=d.phase_name?d.phase_name+" — "+d.status:d.status;
+   if(Array.isArray(d.log)){
+    $("console").textContent=d.log.join("\\n");
+    $("console").scrollTop=$("console").scrollHeight;
+   }
+   if(d.status==="done"){
+    clearInterval(timer);running=false;$("startBtn").disabled=false;
+    $("reportFrame").src=BACKEND+"/report?ts="+Date.now();
+   }
+   if(d.status==="error"){
+    running=false;$("startBtn").disabled=false;
+    alert(d.error||"Audit failed");
+   }
+  }catch(err){}
+ };
+ window.auditEventSource.onerror=()=>{};
+}
+
+
+$("startBtn").onclick=async()=>{
+ if(running)return;
+ const brand=$("brand").value.trim(),url=$("url").value.trim(),category=$("category").value.trim(),competitors=selectedCompetitors();
+ if(!brand||!url||!category){alert("Enter Brand Name, Website and Category.");return}
+ if(!competitors.length){alert("Discover or add at least one competitor.");return}
+ if(!(await checkBackend())){alert("Backend is offline. Run 'python app.py' first.");return}
+ running=true;$("startBtn").disabled=true;$("console").textContent="Starting audit…";renderPhases(0,-1);
+ try{
+  const r=await fetch(BACKEND+"/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({brand_name:brand,brand_url:url,category,competitors})});
+  const d=await r.json();if(!r.ok)throw Error(d.detail||"Could not start audit");
+  log(`Audit started with ${competitors.length} competitor(s).`);
+  startProgress();
+ }catch(e){running=false;$("startBtn").disabled=false;alert(e.message);log("Start error: "+e.message)}
+};
+
+$("refreshReport").onclick=()=>{$("reportFrame").src=BACKEND+"/report?ts="+Date.now()}
+$("downloadReport").onclick=async()=>{
+ try{
+  const r=await fetch(BACKEND+"/download");
+  if(!r.ok)throw Error("Report is not ready");
+  const blob=await r.blob();
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="ai_visibility_report.html";
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+ }catch(e){alert(e.message)}
+}
+$("resetBtn").onclick=async()=>{try{await fetch(BACKEND+"/reset",{method:"POST"});}catch(e){};location.reload()};
+
+// Prevent any accidental target=_blank navigation in this application.
+document.addEventListener("click",e=>{
+ const a=e.target.closest("a"); if(!a)return;
+ if(a.target==="_blank"){e.preventDefault();a.removeAttribute("target");}
+},true);
+</script>
+</body>
+</html>
